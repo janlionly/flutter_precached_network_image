@@ -31,6 +31,34 @@ void initState() {
 }
 ```
 
+PrecachedNetworkImageManager handle about precache(memory) and cache(disk) all methods:
+
+```dart
+/// precache all urls(or the target param urls) to files in memory
+/// usage:
+///   you can call this method in advance(eg. on launch) to avoid the flash screen caused by the delay time
+///   after set the parameter [precache] of PrecachedNetworkImage(..., precache: true) to true.
+precacheNetworkImages({List<String> urls}); 
+
+/// add the url which you want to precache next time
+addPrecache({@required String url});
+
+/// delete the url which you cancel to precache 
+deletePrecache({@required String url});
+
+/// delete the file of given url cache in memory and disk
+deleteImageCache({@required String url});
+
+/// clean all precache's files of given urls cache in memory and disk
+cleanImageCache();
+
+/// clean all urls precache
+cleanPrecache();
+
+/// clean all urls precache and file cache in memory and disk
+cleanCaches();
+```
+
 ## Author
 
 Visit my github: [janlionly](https://github.com/janlionly)<br>
