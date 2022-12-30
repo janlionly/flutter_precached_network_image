@@ -17,6 +17,10 @@ class PrecachedNetworkImageManager {
   Map<String, File> cachedFiles = {};
   final _savedTokey = "PrecachedNetworkImageManagerKey";
 
+  final Map<String, bool> _isRequesteds = {};
+  final Map<String, bool> _isLoadSuccessfuls = {};
+  final Map<String, dynamic> _statusCodes = {};
+
   /// precache all urls(or the target param urls) to files in memory
   /// usage:
   ///   you can call this method in advance(eg. on launch) to avoid the flash screen caused by the delay time
@@ -115,7 +119,8 @@ class PrecachedNetworkImage extends StatelessWidget {
   final double height;
   // call PrecachedNetworkImageManager's precacheNetworkImages which read the disk file to memory after set to true
   final bool precache; 
-  final Widget placeholder;
+  final Widget Function(BuildContext contect, String url) placeholder;
+  final Widget Function(BuildContext context, String url, dynamic error) errorWidget; 
 
   const PrecachedNetworkImage({
     @required this.url, 
@@ -123,6 +128,7 @@ class PrecachedNetworkImage extends StatelessWidget {
     @required this.height, 
     this.precache = false, 
     this.placeholder,
+    this.errorWidget,
     Key key}) : super(key: key);
 
   @override
@@ -150,10 +156,19 @@ class PrecachedNetworkImage extends StatelessWidget {
             fit: BoxFit.fill,
           );
         }
+        var isError = false;
+        final isRequested = PrecachedNetworkImageManager.instance._isRequesteds[url] ?? false;
+        final isLoadSuccessful = PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] ?? false;
+
+        if (isRequested && !isLoadSuccessful && errorWidget != null) {
+          isError = true;
+        }
         return SizedBox(
           width: width,
           height: height,
-          child: placeholder,
+          child: isError ? 
+          errorWidget(context, url, PrecachedNetworkImageManager.instance._statusCodes[url]) : 
+          placeholder(context, url),
         );
       });
   }
@@ -179,12 +194,37 @@ class PrecachedNetworkImage extends StatelessWidget {
     }
 
     file = await File(filePath).create(recursive: true);
-    var response = await http.get(Uri.parse(url));
-    await file.writeAsBytes(response.bodyBytes);
-    log("$url write file success");
-    if (precache) {
-      PrecachedNetworkImageManager.instance.addPrecache(url: url);
+    http.Response response;
+    dynamic error;
+    try {
+      response = await http.get(Uri.parse(url));
+    } catch (e) {
+      error = e;
     }
-    return file;
+    PrecachedNetworkImageManager.instance._isRequesteds[url] = true;
+    PrecachedNetworkImageManager.instance._statusCodes[url] = response.statusCode;
+
+    if (error != null) {
+      PrecachedNetworkImageManager.instance._statusCodes[url] = error;
+      log("$url get url image data failed with error code: $error");
+      return null;
+    }
+
+    if (response.statusCode == 200) {
+      if (!response.body.contains('<html>')) {
+        await file.writeAsBytes(response.bodyBytes);
+        log("$url write file success");
+        PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
+        if (precache) {
+          PrecachedNetworkImageManager.instance.addPrecache(url: url);
+        }
+        return file;
+      } else {
+        PrecachedNetworkImageManager.instance._statusCodes[url] = 404;
+      }
+    }
+
+    log("$url get url image data failed with error code: ${response.statusCode}");
+    return null;
   }
 }

@@ -2,3 +2,6 @@
 
 * Done: Describe initial release.
 
+## [1.1.0] - 30 December 2022
+
+* Done: Add placeholder widget handle callback and error widget handle callback.

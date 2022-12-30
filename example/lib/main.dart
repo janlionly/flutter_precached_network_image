@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:precached_network_image/precached_network_image.dart';
 
@@ -52,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    // PrecachedNetworkImageManager.instance.cleanCaches();
     PrecachedNetworkImageManager.instance.precacheNetworkImages();
   }
 
@@ -82,17 +85,22 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            Center(
+            const Center(
               child: Text("It's cloudy here"),
             ),
             Center(
               child: PrecachedNetworkImage(
-                url: 'https://picsum.photos/200',
-                 width: 200, 
-                 height: 200,
-                 precache: true,
+                url: 'https://picsum.photos/400',
+                width: 200, 
+                height: 200,
+                precache: true,
+                placeholder: (context, url) => const Icon(Icons.person),
+                errorWidget: (context, url, error) {
+                  log("get image failed code: $error");
+                  return const Icon(Icons.error);
+                },
               ),
             ),
           ],

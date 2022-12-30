@@ -14,10 +14,11 @@ PrecachedNetworkImage(
   width: 200, 
   height: 200,
   precache: true, // default is false, true for next time loading from memory in advance.
-  placeholder: Image.asset(
-    "assets/images/default.png",
-    fit: BoxFit.fill,
-  ),
+  placeholder: (context, url) => const Icon(Icons.person),
+  errorWidget: (context, url, error) {
+    log("get image failed code: $error");
+    return const Icon(Icons.error);
+  },
 ),
 ```
 
