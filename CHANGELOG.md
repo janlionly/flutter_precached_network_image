@@ -9,3 +9,7 @@
 ## [1.1.1] - 30 December 2022
 
 * Fixed: Throw exception when placeholder is null.
+
+## [1.1.2] - 30 December 2022
+
+* Fixed: Response's body maybe throw exception.

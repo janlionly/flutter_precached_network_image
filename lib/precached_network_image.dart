@@ -211,17 +211,13 @@ class PrecachedNetworkImage extends StatelessWidget {
     }
 
     if (response.statusCode == 200) {
-      if (!response.body.contains('<html>')) {
-        await file.writeAsBytes(response.bodyBytes);
-        log("$url write file success");
-        PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
-        if (precache) {
-          PrecachedNetworkImageManager.instance.addPrecache(url: url);
-        }
-        return file;
-      } else {
-        PrecachedNetworkImageManager.instance._statusCodes[url] = 404;
+      await file.writeAsBytes(response.bodyBytes);
+      log("$url write file success");
+      PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
+      if (precache) {
+        PrecachedNetworkImageManager.instance.addPrecache(url: url);
       }
+      return file;
     }
 
     log("$url get url image data failed with error code: ${response.statusCode}");
