@@ -168,7 +168,7 @@ class PrecachedNetworkImage extends StatelessWidget {
           height: height,
           child: isError ? 
           errorWidget(context, url, PrecachedNetworkImageManager.instance._statusCodes[url]) : 
-          placeholder(context, url),
+          placeholder != null ? placeholder(context, url) : null,
         );
       });
   }
