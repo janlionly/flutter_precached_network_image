@@ -17,3 +17,7 @@
 ## [1.1.3] - 31 January 2023
 
 * Feat: Add image fit parameter.
+
+## [1.1.4] - 31 January 2023
+
+* Docs: Update CHANGELOG.md file.

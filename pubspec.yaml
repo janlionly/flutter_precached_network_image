@@ -1,7 +1,7 @@
 name: precached_network_image
 description: Flutter library to load and cache network images to disk and
   support to precache images to memory in advance to avoid the flash screen caused by the delay time.
-version: 1.1.3
+version: 1.1.4
 homepage: https://github.com/janlionly/flutter_precached_network_image
 
 environment:
