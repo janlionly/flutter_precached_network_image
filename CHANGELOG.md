@@ -13,3 +13,7 @@
 ## [1.1.2] - 30 December 2022
 
 * Fixed: Response's body maybe throw exception.
+
+## [1.1.3] - 31 January 2023
+
+* Feat: Add image fit parameter.
