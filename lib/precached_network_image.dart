@@ -1,8 +1,10 @@
 library precached_network_image;
 
+import 'dart:convert';
 import 'dart:core';
 import 'dart:developer';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http; 
@@ -59,9 +61,7 @@ class PrecachedNetworkImageManager {
 
   /// delete the file of given url cache in memory and disk
   deleteImageCache({@required String url}) async {
-    Directory documentDirectory = await getApplicationDocumentsDirectory();
-    String filePath = path.join(documentDirectory.path, path.basename(url));
-    File file = File(filePath);
+    File file = await _getFileWithUrl(url);
     try {
       if (await file.exists()) {
         await file.writeAsString('');
@@ -102,14 +102,33 @@ class PrecachedNetworkImageManager {
 
   // precache target urls to files in memory
   _precacheReadLocal({@required List<String> urls}) async {
-    final documentDirectory = await getApplicationDocumentsDirectory();
     for (String url in urls) {
-      File file = File(path.join(documentDirectory.path, path.basename(url)));
-      final isExists = await file.exists();
-      final length = await file.length();
-      cachedFiles[url] = (isExists && length > 0) ? file : null;
+      File file = await _getFileWithUrl(url);
+      await _cacheToFile(url, file);
     }
     log("memory cache:$cachedFiles");
+  }
+
+  Future<bool> _cacheToFile(String url, File file) async {
+    final isExists = await file.exists();
+    if (isExists) {
+      final length = await file.length();
+      if (length > 0) {
+        cachedFiles[url] = file;
+        return true;
+      }
+    } 
+    return false;
+  }
+
+  dynamic _getFileWithUrl(String url) async {
+    Directory documentDirectory = await getApplicationDocumentsDirectory();
+    String hash = sha1.convert(utf8.encode(url)).toString();
+    // log('url is: $url, to hash: $hash');
+
+    String filePath = path.join(documentDirectory.path, hash);
+    File file = File(filePath);
+    return file;
   }
 }
 
@@ -119,7 +138,7 @@ class PrecachedNetworkImage extends StatelessWidget {
   final double height;
   final BoxFit fit;
   // call PrecachedNetworkImageManager's precacheNetworkImages which read the disk file to memory after set to true
-  final bool precache; 
+  final bool precache;
   final Widget Function(BuildContext contect, String url) placeholder;
   final Widget Function(BuildContext context, String url, dynamic error) errorWidget; 
 
@@ -177,14 +196,11 @@ class PrecachedNetworkImage extends StatelessWidget {
 
 
   Future<File> _getUrlFile() async {
-    if (url.isEmpty) {
+    if (url == null || url.isEmpty) {
       return null;
     }
 
-    Directory documentDirectory = await getApplicationDocumentsDirectory();
-    String filePath = path.join(documentDirectory.path, path.basename(url));
-
-    File file = File(filePath);
+    File file = await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
     bool isExists = await file.exists();
 
     if (isExists) {
@@ -195,7 +211,7 @@ class PrecachedNetworkImage extends StatelessWidget {
       } 
     }
 
-    file = await File(filePath).create(recursive: true);
+    file = await file.create(recursive: true);
     http.Response response;
     dynamic error;
     try {
@@ -204,7 +220,6 @@ class PrecachedNetworkImage extends StatelessWidget {
       error = e;
     }
     PrecachedNetworkImageManager.instance._isRequesteds[url] = true;
-    PrecachedNetworkImageManager.instance._statusCodes[url] = response.statusCode;
 
     if (error != null) {
       PrecachedNetworkImageManager.instance._statusCodes[url] = error;
@@ -212,9 +227,11 @@ class PrecachedNetworkImage extends StatelessWidget {
       return null;
     }
 
+    PrecachedNetworkImageManager.instance._statusCodes[url] = response.statusCode;
+
     if (response.statusCode == 200) {
       await file.writeAsBytes(response.bodyBytes);
-      log("$url write file success");
+      log("$url write file success with save info: $file");
       PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
       if (precache) {
         PrecachedNetworkImageManager.instance.addPrecache(url: url);
