@@ -21,3 +21,7 @@
 ## [1.1.4] - 31 January 2023
 
 * Docs: Update CHANGELOG.md file.
+
+## [1.1.5] - 04 May 2023
+
+* Feat: Save image file name using hash(url).
