@@ -28,9 +28,9 @@ class _MyHomePageState extends State<MyHomePage> {
             const Center(child: Text("It's cloudy here")),
             Center(
               child: PrecachedNetworkImage(
-                url: 'https://picsum.photos/200',
-                width: 200, 
-                height: 200,
+                url: 'https://picsum.photos/300',
+                width: 300, 
+                height: 300,
                 precache: true,
                 placeholder: (context, url) => const Icon(Icons.person),
                 errorWidget: (context, url, error) {
@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key key, @required this.title}) : super(key: key);
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -54,12 +54,12 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-Future<void> main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key key}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

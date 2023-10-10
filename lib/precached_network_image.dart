@@ -16,7 +16,7 @@ class PrecachedNetworkImageManager {
   PrecachedNetworkImageManager._();
 
   static final instance = PrecachedNetworkImageManager._();
-  Map<String, File> cachedFiles = {};
+  Map<String, File?> cachedFiles = {};
   final _savedTokey = "PrecachedNetworkImageManagerKey";
 
   final Map<String, bool> _isRequesteds = {};
@@ -27,7 +27,7 @@ class PrecachedNetworkImageManager {
   /// usage:
   ///   you can call this method in advance(eg. on launch) to avoid the flash screen caused by the delay time
   ///   after set the parameter [precache] of PrecachedNetworkImage(..., precache: true) to true.
-  precacheNetworkImages({List<String> urls}) async {
+  precacheNetworkImages({List<String>? urls}) async {
     if (urls != null) {
       await _precacheReadLocal(urls: urls);
     } else {
@@ -38,7 +38,7 @@ class PrecachedNetworkImageManager {
   }
 
   /// add the url which you want to precache next time
-  addPrecache({@required String url}) {
+  addPrecache({required String url}) {
     SharedPreferences.getInstance().then((prefs) {
       List<String> urls = prefs.getStringList(_savedTokey) ?? [];
       if (!urls.contains(url)) {
@@ -49,7 +49,7 @@ class PrecachedNetworkImageManager {
   }
 
   /// delete the url which you cancel to precache 
-  deletePrecache({@required String url}) {
+  deletePrecache({required String url}) {
     SharedPreferences.getInstance().then((prefs) {
       List<String> urls = prefs.getStringList(_savedTokey) ?? [];
       if (urls.contains(url)) {
@@ -60,7 +60,7 @@ class PrecachedNetworkImageManager {
   }
 
   /// delete the file of given url cache in memory and disk
-  deleteImageCache({@required String url}) async {
+  deleteImageCache({required String url}) async {
     File file = await _getFileWithUrl(url);
     try {
       if (await file.exists()) {
@@ -101,7 +101,7 @@ class PrecachedNetworkImageManager {
   }
 
   // precache target urls to files in memory
-  _precacheReadLocal({@required List<String> urls}) async {
+  _precacheReadLocal({required List<String> urls}) async {
     for (String url in urls) {
       File file = await _getFileWithUrl(url);
       await _cacheToFile(url, file);
@@ -139,23 +139,23 @@ class PrecachedNetworkImage extends StatelessWidget {
   final BoxFit fit;
   // call PrecachedNetworkImageManager's precacheNetworkImages which read the disk file to memory after set to true
   final bool precache;
-  final Widget Function(BuildContext contect, String url) placeholder;
-  final Widget Function(BuildContext context, String url, dynamic error) errorWidget; 
+  final Widget Function(BuildContext contect, String url)? placeholder;
+  final Widget Function(BuildContext context, String url, dynamic error)? errorWidget; 
 
   const PrecachedNetworkImage({
-    @required this.url, 
-    @required this.width, 
-    @required this.height, 
+    required this.url, 
+    required this.width, 
+    required this.height, 
     this.precache = false,
     this.fit = BoxFit.fill, 
     this.placeholder,
     this.errorWidget,
-    Key key}) : super(key: key);
+    Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     if (precache) {
-      File targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
+      File? targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
       if (targetFile != null) {
         log("$url read memory precache file success");
         return Image.file(
@@ -166,12 +166,12 @@ class PrecachedNetworkImage extends StatelessWidget {
         );
       }
     }
-    return FutureBuilder<File>(
+    return FutureBuilder<File?>(
       future: _getUrlFile(),
-      builder: (BuildContext context, AsyncSnapshot<File> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
         if (snapshot.hasData) {
           return Image.file(
-            snapshot.data,
+            snapshot.data!,
             width: width,
             height: height,
             fit: fit,
@@ -188,15 +188,15 @@ class PrecachedNetworkImage extends StatelessWidget {
           width: width,
           height: height,
           child: isError ? 
-          errorWidget(context, url, PrecachedNetworkImageManager.instance._statusCodes[url]) : 
-          placeholder != null ? placeholder(context, url) : null,
+          (errorWidget != null ? errorWidget!(context, url, PrecachedNetworkImageManager.instance._statusCodes[url]) : null) : 
+          (placeholder != null ? placeholder!(context, url) : null),
         );
       });
   }
 
 
-  Future<File> _getUrlFile() async {
-    if (url == null || url.isEmpty) {
+  Future<File?> _getUrlFile() async {
+    if (url.isEmpty) {
       return null;
     }
 
@@ -212,7 +212,7 @@ class PrecachedNetworkImage extends StatelessWidget {
     }
 
     file = await file.create(recursive: true);
-    http.Response response;
+    late http.Response response;
     dynamic error;
     try {
       response = await http.get(Uri.parse(url));

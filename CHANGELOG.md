@@ -25,3 +25,7 @@
 ## [1.1.5] - 04 May 2023
 
 * Feat: Save image file name using hash(url).
+
+## [1.2.0] - 10 Oct 2023
+
+* Feat: Null safety.
