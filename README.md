@@ -29,7 +29,7 @@ When you want to precache images to memory to avoid the delay time, you can call
 @override
 void initState() {
   super.initState();
-  PrecachedNetworkImageManager.instance.precacheNetworkImages();
+  PrecachedNetworkImageManager.instance.precacheNetworkImages(isLog: true);
 }
 ```
 
