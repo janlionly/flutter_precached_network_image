@@ -2,7 +2,6 @@ library precached_network_image;
 
 import 'dart:convert';
 import 'dart:core';
-import 'dart:developer';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 
@@ -11,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart'; 
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dev_colorized_log/dev_colorized_log.dart';
 
 class PrecachedNetworkImageManager {
   PrecachedNetworkImageManager._();
@@ -27,7 +27,9 @@ class PrecachedNetworkImageManager {
   /// usage:
   ///   you can call this method in advance(eg. on launch) to avoid the flash screen caused by the delay time
   ///   after set the parameter [precache] of PrecachedNetworkImage(..., precache: true) to true.
-  precacheNetworkImages({List<String>? urls}) async {
+  precacheNetworkImages({List<String>? urls, bool isLog = false}) async {
+    Dev.enable = isLog;
+    
     if (urls != null) {
       await _precacheReadLocal(urls: urls);
     } else {
@@ -67,11 +69,11 @@ class PrecachedNetworkImageManager {
         await file.writeAsString('');
         await file.delete();
         cachedFiles[url] = null;
-        log("$url delete file success!");
+        Dev.log("$url delete file success!");
       }
     } catch (e) {
       // Error in getting access to the file.
-      log("$url delete file failure with error:($e)");
+      Dev.log("$url delete file failure with error:($e)");
     }
   }
 
@@ -89,7 +91,7 @@ class PrecachedNetworkImageManager {
     SharedPreferences.getInstance().then((prefs) {
       List<String> urls = [];
       prefs.setStringList(_savedTokey, urls);
-      log("clean all precache success");
+      Dev.log("clean all precache success");
     });
   }
 
@@ -106,7 +108,7 @@ class PrecachedNetworkImageManager {
       File file = await _getFileWithUrl(url);
       await _cacheToFile(url, file);
     }
-    log("memory cache:$cachedFiles");
+    Dev.log("memory cache:$cachedFiles");
   }
 
   Future<bool> _cacheToFile(String url, File file) async {
@@ -124,7 +126,7 @@ class PrecachedNetworkImageManager {
   dynamic _getFileWithUrl(String url) async {
     Directory documentDirectory = await getApplicationDocumentsDirectory();
     String hash = sha1.convert(utf8.encode(url)).toString();
-    // log('url is: $url, to hash: $hash');
+    // Dev.log('url is: $url, to hash: $hash');
 
     String filePath = path.join(documentDirectory.path, hash);
     File file = File(filePath);
@@ -157,7 +159,7 @@ class PrecachedNetworkImage extends StatelessWidget {
     if (precache) {
       File? targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
       if (targetFile != null) {
-        log("$url read memory precache file success");
+        Dev.log("$url read memory precache file success");
         return Image.file(
           targetFile,
           width: width,
@@ -206,7 +208,7 @@ class PrecachedNetworkImage extends StatelessWidget {
     if (isExists) {
       int length = await file.length();
       if (length > 0) {
-        log("$url read file success");
+        Dev.log("$url read file success");
         return file;
       } 
     }
@@ -223,7 +225,7 @@ class PrecachedNetworkImage extends StatelessWidget {
 
     if (error != null) {
       PrecachedNetworkImageManager.instance._statusCodes[url] = error;
-      log("$url get url image data failed with error code: $error");
+      Dev.log("$url get url image data failed with error code: $error");
       return null;
     }
 
@@ -231,7 +233,7 @@ class PrecachedNetworkImage extends StatelessWidget {
 
     if (response.statusCode == 200) {
       await file.writeAsBytes(response.bodyBytes);
-      log("$url write file success with save info: $file");
+      Dev.log("$url write file success with save info: $file");
       PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
       if (precache) {
         PrecachedNetworkImageManager.instance.addPrecache(url: url);
@@ -239,7 +241,7 @@ class PrecachedNetworkImage extends StatelessWidget {
       return file;
     }
 
-    log("$url get url image data failed with error code: ${response.statusCode}");
+    Dev.log("$url get url image data failed with error code: ${response.statusCode}");
     return null;
   }
 }

@@ -6,7 +6,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     // PrecachedNetworkImageManager.instance.cleanCaches();
-    PrecachedNetworkImageManager.instance.precacheNetworkImages();
+    PrecachedNetworkImageManager.instance.precacheNetworkImages(isLog: true);
   }
   @override
   Widget build(BuildContext context) {
