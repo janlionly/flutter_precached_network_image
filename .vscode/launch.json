@@ -1,0 +1,44 @@
+{
+    // visit: https://go.microsoft.com/fwlink/?linkid=830387, to see more.
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "flutter_precached_network_image",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "flutter_precached_network_image (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "flutter_precached_network_image (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "example",
+            "cwd": "example",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "example (profile mode)",
+            "cwd": "example",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "example (release mode)",
+            "cwd": "example",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

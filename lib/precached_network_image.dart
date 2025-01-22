@@ -39,6 +39,10 @@ class PrecachedNetworkImageManager {
     }
   }
 
+  setLog(bool isLog) {
+    Dev.enable = isLog;
+  }
+
   /// add the url which you want to precache next time
   addPrecache({required String url}) {
     SharedPreferences.getInstance().then((prefs) {
@@ -123,7 +127,7 @@ class PrecachedNetworkImageManager {
     return false;
   }
 
-  dynamic _getFileWithUrl(String url) async {
+  Future<File> _getFileWithUrl(String url) async {
     Directory documentDirectory = await getApplicationDocumentsDirectory();
     String hash = sha1.convert(utf8.encode(url)).toString();
     // Dev.log('url is: $url, to hash: $hash');
@@ -156,18 +160,17 @@ class PrecachedNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (precache) {
-      File? targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
-      if (targetFile != null) {
-        Dev.log("$url read memory precache file success");
-        return Image.file(
-          targetFile,
-          width: width,
-          height: height,
-          fit: fit,
-        );
-      }
+    File? targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
+    if (targetFile != null) {
+      Dev.log("$url read memory precache file success");
+      return Image.file(
+        targetFile,
+        width: width,
+        height: height,
+        fit: fit,
+      );
     }
+    Dev.log("$url get file from future");
     return FutureBuilder<File?>(
       future: _getUrlFile(),
       builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
@@ -209,6 +212,7 @@ class PrecachedNetworkImage extends StatelessWidget {
       int length = await file.length();
       if (length > 0) {
         Dev.log("$url read file success");
+        PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
         return file;
       } 
     }
@@ -235,6 +239,7 @@ class PrecachedNetworkImage extends StatelessWidget {
       await file.writeAsBytes(response.bodyBytes);
       Dev.log("$url write file success with save info: $file");
       PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
+      PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
       if (precache) {
         PrecachedNetworkImageManager.instance.addPrecache(url: url);
       }

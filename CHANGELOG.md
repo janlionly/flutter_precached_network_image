@@ -33,3 +33,7 @@
 ## [1.2.1] - 03 Aug 2024
 
 * Feat: Add log switch.
+
+## [1.2.2] - 22 Jan 2025
+
+* Feat: Add image memory caching for fast reading.
