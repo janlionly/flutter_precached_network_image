@@ -1,6 +1,32 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:precached_network_image/precached_network_image.dart';
+
+class NewPage extends StatelessWidget {
+  const NewPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Page'),
+      ),
+      body: Center(
+        child: PrecachedNetworkImage(
+          url: 'https://picsum.photos/300',
+          width: 300, 
+          height: 300,
+          precache: false,
+          placeholder: (context, url) => const Icon(Icons.person),
+          errorWidget: (context, url, error) {
+            log("get image failed code: $error");
+            return const Icon(Icons.error);
+          },
+        ),
+      ),
+    );
+  }
+}
 class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
@@ -25,7 +51,19 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: TabBarView(
           children: [
-            const Center(child: Text("It's cloudy here")),
+            // const Center(child: Text("It's cloudy here")),
+            Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  // Navigate to the new page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => NewPage()),
+                  );
+                },
+                child: const Text('Go to New Page'),
+              )
+            ),
             Center(
               child: PrecachedNetworkImage(
                 url: 'https://picsum.photos/300',
