@@ -145,6 +145,7 @@ class PrecachedNetworkImage extends StatelessWidget {
   final BoxFit fit;
   // call PrecachedNetworkImageManager's precacheNetworkImages which read the disk file to memory after set to true
   final bool precache;
+  final bool gaplessPlayback;
   final Widget Function(BuildContext contect, String url)? placeholder;
   final Widget Function(BuildContext context, String url, dynamic error)? errorWidget; 
 
@@ -153,7 +154,8 @@ class PrecachedNetworkImage extends StatelessWidget {
     required this.width, 
     required this.height, 
     this.precache = false,
-    this.fit = BoxFit.fill, 
+    this.gaplessPlayback = true,
+    this.fit = BoxFit.fill,
     this.placeholder,
     this.errorWidget,
     Key? key}) : super(key: key);
@@ -164,9 +166,11 @@ class PrecachedNetworkImage extends StatelessWidget {
     if (targetFile != null) {
       Dev.log("$url read memory precache file success");
       return Image.file(
+        key: ValueKey(url),
         targetFile,
+        gaplessPlayback: gaplessPlayback,
         width: width,
-        height: height,
+        height: height, 
         fit: fit,
       );
     }

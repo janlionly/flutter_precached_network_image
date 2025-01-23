@@ -37,3 +37,7 @@
 ## [1.2.2] - 22 Jan 2025
 
 * Feat: Add image memory caching for fast reading.
+
+## [1.2.3] - 23 Jan 2025
+
+* Perf: Optimize and accelerate image loading to prevent flickering.
