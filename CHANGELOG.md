@@ -41,3 +41,7 @@
 ## [1.2.3] - 23 Jan 2025
 
 * Perf: Optimize and accelerate image loading to prevent flickering.
+
+## [1.2.4] - 24 Jan 2025
+
+* Docs: Dart format and and upate package dependencies' version.
