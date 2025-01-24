@@ -44,4 +44,4 @@
 
 ## [1.2.4] - 24 Jan 2025
 
-* Docs: Dart format and and upate package dependencies' version.
+* Docs: Dart format and upate package dependencies' version.
