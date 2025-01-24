@@ -159,8 +159,7 @@ class PrecachedNetworkImage extends StatelessWidget {
       this.fit = BoxFit.fill,
       this.placeholder,
       this.errorWidget,
-      Key? key})
-      : super(key: key);
+      super.key});
 
   @override
   Widget build(BuildContext context) {
