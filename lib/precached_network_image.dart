@@ -6,8 +6,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 
 import 'package:flutter/widgets.dart';
-import 'package:http/http.dart' as http; 
-import 'package:path_provider/path_provider.dart'; 
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dev_colorized_log/dev_colorized_log.dart';
@@ -29,7 +29,7 @@ class PrecachedNetworkImageManager {
   ///   after set the parameter [precache] of PrecachedNetworkImage(..., precache: true) to true.
   precacheNetworkImages({List<String>? urls, bool isLog = false}) async {
     Dev.enable = isLog;
-    
+
     if (urls != null) {
       await _precacheReadLocal(urls: urls);
     } else {
@@ -54,7 +54,7 @@ class PrecachedNetworkImageManager {
     });
   }
 
-  /// delete the url which you cancel to precache 
+  /// delete the url which you cancel to precache
   deletePrecache({required String url}) {
     SharedPreferences.getInstance().then((prefs) {
       List<String> urls = prefs.getStringList(_savedTokey) ?? [];
@@ -123,7 +123,7 @@ class PrecachedNetworkImageManager {
         cachedFiles[url] = file;
         return true;
       }
-    } 
+    }
     return false;
   }
 
@@ -147,18 +147,20 @@ class PrecachedNetworkImage extends StatelessWidget {
   final bool precache;
   final bool gaplessPlayback;
   final Widget Function(BuildContext contect, String url)? placeholder;
-  final Widget Function(BuildContext context, String url, dynamic error)? errorWidget; 
+  final Widget Function(BuildContext context, String url, dynamic error)?
+      errorWidget;
 
-  const PrecachedNetworkImage({
-    required this.url, 
-    required this.width, 
-    required this.height, 
-    this.precache = false,
-    this.gaplessPlayback = true,
-    this.fit = BoxFit.fill,
-    this.placeholder,
-    this.errorWidget,
-    Key? key}) : super(key: key);
+  const PrecachedNetworkImage(
+      {required this.url,
+      required this.width,
+      required this.height,
+      this.precache = false,
+      this.gaplessPlayback = true,
+      this.fit = BoxFit.fill,
+      this.placeholder,
+      this.errorWidget,
+      Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -170,46 +172,52 @@ class PrecachedNetworkImage extends StatelessWidget {
         targetFile,
         gaplessPlayback: gaplessPlayback,
         width: width,
-        height: height, 
+        height: height,
         fit: fit,
       );
     }
     Dev.log("$url get file from future");
     return FutureBuilder<File?>(
-      future: _getUrlFile(),
-      builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
-        if (snapshot.hasData) {
-          return Image.file(
-            snapshot.data!,
+        future: _getUrlFile(),
+        builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
+          if (snapshot.hasData) {
+            return Image.file(
+              snapshot.data!,
+              width: width,
+              height: height,
+              fit: fit,
+            );
+          }
+          var isError = false;
+          final isRequested =
+              PrecachedNetworkImageManager.instance._isRequesteds[url] ?? false;
+          final isLoadSuccessful =
+              PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] ??
+                  false;
+
+          if (isRequested && !isLoadSuccessful && errorWidget != null) {
+            isError = true;
+          }
+          return SizedBox(
             width: width,
             height: height,
-            fit: fit,
+            child: isError
+                ? (errorWidget != null
+                    ? errorWidget!(context, url,
+                        PrecachedNetworkImageManager.instance._statusCodes[url])
+                    : null)
+                : (placeholder != null ? placeholder!(context, url) : null),
           );
-        }
-        var isError = false;
-        final isRequested = PrecachedNetworkImageManager.instance._isRequesteds[url] ?? false;
-        final isLoadSuccessful = PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] ?? false;
-
-        if (isRequested && !isLoadSuccessful && errorWidget != null) {
-          isError = true;
-        }
-        return SizedBox(
-          width: width,
-          height: height,
-          child: isError ? 
-          (errorWidget != null ? errorWidget!(context, url, PrecachedNetworkImageManager.instance._statusCodes[url]) : null) : 
-          (placeholder != null ? placeholder!(context, url) : null),
-        );
-      });
+        });
   }
-
 
   Future<File?> _getUrlFile() async {
     if (url.isEmpty) {
       return null;
     }
 
-    File file = await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
+    File file =
+        await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
     bool isExists = await file.exists();
 
     if (isExists) {
@@ -218,7 +226,7 @@ class PrecachedNetworkImage extends StatelessWidget {
         Dev.log("$url read file success");
         PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
         return file;
-      } 
+      }
     }
 
     file = await file.create(recursive: true);
@@ -237,7 +245,8 @@ class PrecachedNetworkImage extends StatelessWidget {
       return null;
     }
 
-    PrecachedNetworkImageManager.instance._statusCodes[url] = response.statusCode;
+    PrecachedNetworkImageManager.instance._statusCodes[url] =
+        response.statusCode;
 
     if (response.statusCode == 200) {
       await file.writeAsBytes(response.bodyBytes);
@@ -250,7 +259,8 @@ class PrecachedNetworkImage extends StatelessWidget {
       return file;
     }
 
-    Dev.log("$url get url image data failed with error code: ${response.statusCode}");
+    Dev.log(
+        "$url get url image data failed with error code: ${response.statusCode}");
     return null;
   }
 }
