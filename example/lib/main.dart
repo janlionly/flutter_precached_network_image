@@ -14,7 +14,7 @@ class NewPage extends StatelessWidget {
       body: Center(
         child: PrecachedNetworkImage(
           url: 'https://picsum.photos/300',
-          width: 300, 
+          width: 300,
           height: 300,
           precache: false,
           placeholder: (context, url) => const Icon(Icons.person),
@@ -27,6 +27,7 @@ class NewPage extends StatelessWidget {
     );
   }
 }
+
 class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // PrecachedNetworkImageManager.instance.cleanCaches();
     PrecachedNetworkImageManager.instance.precacheNetworkImages(isLog: true);
   }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -51,23 +53,21 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         body: TabBarView(
           children: [
-            // const Center(child: Text("It's cloudy here")),
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to the new page
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => NewPage()),
+                    MaterialPageRoute(builder: (context) => const NewPage()),
                   );
                 },
                 child: const Text('Go to New Page'),
-              )
+              ),
             ),
             Center(
               child: PrecachedNetworkImage(
                 url: 'https://picsum.photos/300',
-                width: 300, 
+                width: 300,
                 height: 300,
                 precache: true,
                 placeholder: (context, url) => const Icon(Icons.person),
@@ -83,6 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
 

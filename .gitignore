@@ -6,6 +6,12 @@
 build/
 # If you're building an application, you may want to check-in your pubspec.lock
 pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+!.idea/codeStyles/     # Retain code styles
+.idea/workspace.xml
+.idea/libraries/
 
 # Directory created by dartdoc
 # If you don't generate documentation locally you can remove this line.
