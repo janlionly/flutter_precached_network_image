@@ -45,3 +45,7 @@
 ## [1.2.4] - 24 Jan 2025
 
 * Docs: Dart format and upate package dependencies' version.
+
+## [1.2.5] - 25 Feb 2025
+
+* Feat: Adapt dart sdk version.
