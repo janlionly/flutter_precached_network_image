@@ -49,3 +49,7 @@
 ## [1.2.5] - 25 Feb 2025
 
 * Feat: Adapt dart sdk version.
+
+## [1.2.6] - 08 Apr 2025
+
+* Feat: Update lib version.
