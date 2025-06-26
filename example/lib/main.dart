@@ -17,7 +17,9 @@ class NewPage extends StatelessWidget {
           width: 300,
           height: 300,
           precache: false,
-          placeholder: (context, url) => const Icon(Icons.person),
+          placeholder: (context, url) => Image.asset(
+            'assets/images/avatar_default.png',
+          ),
           errorWidget: (context, url, error) {
             log("get image failed code: $error");
             return const Icon(Icons.error);
@@ -94,7 +96,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 Future<void> main() async {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

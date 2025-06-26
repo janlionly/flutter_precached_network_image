@@ -1,22 +1,25 @@
 library precached_network_image;
 
 import 'dart:convert';
-import 'dart:core';
-import 'dart:io';
 import 'package:crypto/crypto.dart';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dev_colorized_log/dev_colorized_log.dart';
+
+// Platform-specific imports
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+import 'src/file_mobile.dart' if (dart.library.html) 'src/file_web.dart'
+    as platform_file;
 
 class PrecachedNetworkImageManager {
   PrecachedNetworkImageManager._();
 
   static final instance = PrecachedNetworkImageManager._();
-  Map<String, File?> cachedFiles = {};
+  Map<String, dynamic> cachedFiles = {};
   final _savedTokey = "PrecachedNetworkImageManagerKey";
 
   final Map<String, bool> _isRequesteds = {};
@@ -67,11 +70,19 @@ class PrecachedNetworkImageManager {
 
   /// delete the file of given url cache in memory and disk
   deleteImageCache({required String url}) async {
-    File file = await _getFileWithUrl(url);
+    if (kIsWeb) {
+      await _deleteWebCache(url);
+      cachedFiles[url] = null;
+      Dev.log("$url delete web cache success!");
+      return;
+    }
+
     try {
-      if (await file.exists()) {
-        await file.writeAsString('');
-        await file.delete();
+      dynamic file = await _getFileWithUrl(url);
+      bool exists = await _fileExists(file);
+      if (exists) {
+        await _writeFileAsString(file, '');
+        await _deleteFile(file);
         cachedFiles[url] = null;
         Dev.log("$url delete file success!");
       }
@@ -109,16 +120,20 @@ class PrecachedNetworkImageManager {
   // precache target urls to files in memory
   _precacheReadLocal({required List<String> urls}) async {
     for (String url in urls) {
-      File file = await _getFileWithUrl(url);
-      await _cacheToFile(url, file);
+      if (kIsWeb) {
+        await _cacheWebFile(url);
+      } else {
+        dynamic file = await _getFileWithUrl(url);
+        await _cacheToFile(url, file);
+      }
     }
     Dev.log("memory cache:$cachedFiles");
   }
 
-  Future<bool> _cacheToFile(String url, File file) async {
-    final isExists = await file.exists();
+  Future<bool> _cacheToFile(String url, dynamic file) async {
+    final isExists = await _fileExists(file);
     if (isExists) {
-      final length = await file.length();
+      final length = await _getFileLength(file);
       if (length > 0) {
         cachedFiles[url] = file;
         return true;
@@ -127,14 +142,189 @@ class PrecachedNetworkImageManager {
     return false;
   }
 
-  Future<File> _getFileWithUrl(String url) async {
-    Directory documentDirectory = await getApplicationDocumentsDirectory();
-    String hash = sha1.convert(utf8.encode(url)).toString();
-    // Dev.log('url is: $url, to hash: $hash');
+  Future<bool> _cacheWebFile(String url) async {
+    if (!kIsWeb) return false;
 
-    String filePath = path.join(documentDirectory.path, hash);
-    File file = File(filePath);
-    return file;
+    final key = _getWebCacheKey(url);
+    try {
+      final data = await _getWebStorage(key);
+      if (data != null && data.isNotEmpty) {
+        cachedFiles[url] = data;
+        return true;
+      }
+    } catch (e) {
+      Dev.log("Error accessing web storage for $url: $e");
+    }
+    return false;
+  }
+
+  String _getWebCacheKey(String url) {
+    String hash = sha1.convert(utf8.encode(url)).toString();
+    return 'precached_network_image_$hash';
+  }
+
+  Future<void> _deleteWebCache(String url) async {
+    if (kIsWeb) {
+      try {
+        final key = _getWebCacheKey(url);
+        await _removeWebStorage(key);
+      } catch (e) {
+        Dev.log("Error deleting web cache for $url: $e");
+      }
+    }
+  }
+
+  // Web storage helper methods
+  Future<String?> _getWebStorage(String key) async {
+    if (kIsWeb) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(key);
+      } catch (e) {
+        Dev.log("Error getting web storage for $key: $e");
+        return null;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _setWebStorage(String key, String value) async {
+    if (kIsWeb) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(key, value);
+      } catch (e) {
+        Dev.log("Error setting web storage for $key: $e");
+      }
+    }
+  }
+
+  Future<void> _removeWebStorage(String key) async {
+    if (kIsWeb) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+      } catch (e) {
+        Dev.log("Error removing web storage for $key: $e");
+      }
+    }
+  }
+
+  Future<dynamic> _getFileWithUrl(String url) async {
+    if (kIsWeb) {
+      return _getWebCacheKey(url);
+    } else {
+      try {
+        var documentDirectory = await getApplicationDocumentsDirectory();
+        String hash = sha1.convert(utf8.encode(url)).toString();
+        String filePath = path.join(documentDirectory.path, hash);
+
+        // Create File object safely for mobile platforms
+        var file = _createMobileFile(filePath);
+        Dev.log("Created file for $url at path: $filePath");
+        return file;
+      } catch (e) {
+        Dev.log("Error creating file for $url: $e");
+        rethrow;
+      }
+    }
+  }
+
+  dynamic _createMobileFile(String filePath) {
+    if (kIsWeb) {
+      throw UnsupportedError('File creation not supported on web');
+    }
+
+    // Use dynamic import to safely access File constructor
+    try {
+      // This uses a function to dynamically access the File class
+      return _createFileInstance(filePath);
+    } catch (e) {
+      Dev.log("Error creating File object: $e");
+      rethrow;
+    }
+  }
+
+  dynamic _createFileInstance(String filePath) {
+    // Use platform-specific implementation
+    return platform_file.createPlatformFile(filePath);
+  }
+
+  // Platform-specific file operations
+  Future<bool> _fileExists(dynamic file) async {
+    if (kIsWeb) {
+      final key = file as String;
+      try {
+        final data = await _getWebStorage(key);
+        return data != null;
+      } catch (e) {
+        return false;
+      }
+    } else {
+      return await file.exists();
+    }
+  }
+
+  Future<int> _getFileLength(dynamic file) async {
+    if (kIsWeb) {
+      final key = file as String;
+      try {
+        final data = await _getWebStorage(key);
+        return data?.length ?? 0;
+      } catch (e) {
+        return 0;
+      }
+    } else {
+      return await file.length();
+    }
+  }
+
+  Future<void> _writeFileAsString(dynamic file, String contents) async {
+    if (kIsWeb) {
+      final key = file as String;
+      try {
+        await _setWebStorage(key, contents);
+      } catch (e) {
+        Dev.log("Error writing web cache: $e");
+      }
+    } else {
+      await file.writeAsString(contents);
+    }
+  }
+
+  Future<void> _deleteFile(dynamic file) async {
+    if (kIsWeb) {
+      final key = file as String;
+      try {
+        await _removeWebStorage(key);
+      } catch (e) {
+        Dev.log("Error deleting web cache: $e");
+      }
+    } else {
+      await file.delete();
+    }
+  }
+
+  Future<dynamic> _createFile(dynamic file) async {
+    if (kIsWeb) {
+      return file; // No need to create in web storage
+    } else {
+      return await file.create(recursive: true);
+    }
+  }
+
+  Future<void> _writeFileAsBytes(dynamic file, List<int> bytes) async {
+    if (kIsWeb) {
+      final key = file as String;
+      final base64String = base64Encode(bytes);
+      try {
+        await _setWebStorage(key, base64String);
+      } catch (e) {
+        Dev.log("Error writing web cache: $e");
+      }
+    } else {
+      await file.writeAsBytes(bytes);
+    }
   }
 }
 
@@ -163,29 +353,107 @@ class PrecachedNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    File? targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
+    dynamic targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
     if (targetFile != null) {
       Dev.log("$url read memory precache file success");
-      return Image.file(
-        key: ValueKey(url),
-        targetFile,
-        gaplessPlayback: gaplessPlayback,
-        width: width,
-        height: height,
-        fit: fit,
-      );
+      if (kIsWeb) {
+        // For web, targetFile is a base64 string
+        return _buildWebImage(targetFile);
+      } else {
+        Dev.log("$url displaying mobile cached file: $targetFile");
+        try {
+          return Image.file(
+            targetFile,
+            key: ValueKey(url),
+            gaplessPlayback: gaplessPlayback,
+            width: width,
+            height: height,
+            fit: fit,
+            errorBuilder: (context, error, stackTrace) {
+              Dev.log("$url Image.file error: $error");
+              return Container(
+                width: width,
+                height: height,
+                color: Colors.red[100],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.error, color: Colors.red),
+                    Text('File Error', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              );
+            },
+          );
+        } catch (e) {
+          Dev.log("$url Exception creating Image.file: $e");
+          return Container(
+            width: width,
+            height: height,
+            color: Colors.orange[100],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.warning, color: Colors.orange),
+                Text('Create Error', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          );
+        }
+      }
     }
     Dev.log("$url get file from future");
-    return FutureBuilder<File?>(
+    return FutureBuilder<dynamic>(
         future: _getUrlFile(),
-        builder: (BuildContext context, AsyncSnapshot<File?> snapshot) {
+        builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
           if (snapshot.hasData) {
-            return Image.file(
-              snapshot.data!,
-              width: width,
-              height: height,
-              fit: fit,
-            );
+            if (kIsWeb) {
+              return _buildWebImage(snapshot.data);
+            } else {
+              Dev.log(
+                  "$url displaying mobile file from future: ${snapshot.data}");
+              try {
+                return Image.file(
+                  snapshot.data!,
+                  key: ValueKey(url),
+                  gaplessPlayback: gaplessPlayback,
+                  width: width,
+                  height: height,
+                  fit: fit,
+                  errorBuilder: (context, error, stackTrace) {
+                    Dev.log("$url Image.file future error: $error");
+                    return Container(
+                      width: width,
+                      height: height,
+                      color: Colors.red[100],
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.error, color: Colors.red),
+                          Text('Future File Error',
+                              style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              } catch (e) {
+                Dev.log("$url Exception creating future Image.file: $e");
+                return Container(
+                  width: width,
+                  height: height,
+                  color: Colors.orange[100],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.warning, color: Colors.orange),
+                      Text('Future Create Error',
+                          style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                );
+              }
+            }
           }
           var isError = false;
           final isRequested =
@@ -205,30 +473,80 @@ class PrecachedNetworkImage extends StatelessWidget {
                     ? errorWidget!(context, url,
                         PrecachedNetworkImageManager.instance._statusCodes[url])
                     : null)
-                : (placeholder != null ? placeholder!(context, url) : null),
+                : (placeholder != null
+                    ? _handlePlaceholder(context, url)
+                    : null),
           );
         });
   }
 
-  Future<File?> _getUrlFile() async {
+  Widget _buildWebImage(String base64Data) {
+    try {
+      final bytes = base64Decode(base64Data);
+      return Image.memory(
+        bytes,
+        key: ValueKey(url),
+        width: width,
+        height: height,
+        fit: fit,
+        gaplessPlayback: gaplessPlayback,
+      );
+    } catch (e) {
+      Dev.log("Error decoding image data for $url: $e");
+      return Container(
+        width: width,
+        height: height,
+        color: Colors.grey[300],
+        child: const Icon(Icons.error),
+      );
+    }
+  }
+
+  Widget _handlePlaceholder(BuildContext context, String url) {
+    try {
+      return placeholder!(context, url);
+    } catch (e, stack) {
+      Dev.logError('placeholder error', error: e, stackTrace: stack);
+      // fallback to error widget
+      return errorWidget != null
+          ? errorWidget!(
+              context,
+              url,
+              PrecachedNetworkImageManager.instance._statusCodes[url],
+            )
+          : const SizedBox.shrink();
+    }
+  }
+
+  Future<dynamic> _getUrlFile() async {
     if (url.isEmpty) {
       return null;
     }
 
-    File file =
-        await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
-    bool isExists = await file.exists();
+    if (kIsWeb) {
+      return _getWebImageData();
+    } else {
+      return _getMobileImageFile();
+    }
+  }
 
-    if (isExists) {
-      int length = await file.length();
-      if (length > 0) {
-        Dev.log("$url read file success");
-        PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
-        return file;
+  Future<String?> _getWebImageData() async {
+    final key = PrecachedNetworkImageManager.instance._getWebCacheKey(url);
+
+    // Check cache first
+    try {
+      final cachedData =
+          await PrecachedNetworkImageManager.instance._getWebStorage(key);
+      if (cachedData != null && cachedData.isNotEmpty) {
+        Dev.log("$url read web cache success");
+        PrecachedNetworkImageManager.instance.cachedFiles[url] = cachedData;
+        return cachedData;
       }
+    } catch (e) {
+      Dev.log("Error accessing web cache for $url: $e");
     }
 
-    file = await file.create(recursive: true);
+    // Fetch from network
     late http.Response response;
     dynamic error;
     try {
@@ -248,18 +566,106 @@ class PrecachedNetworkImage extends StatelessWidget {
         response.statusCode;
 
     if (response.statusCode == 200) {
-      await file.writeAsBytes(response.bodyBytes);
-      Dev.log("$url write file success with save info: $file");
+      final base64String = base64Encode(response.bodyBytes);
+      try {
+        await PrecachedNetworkImageManager.instance
+            ._setWebStorage(key, base64String);
+        Dev.log("$url write web cache success");
+      } catch (e) {
+        Dev.log("Error writing web cache for $url: $e");
+      }
       PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
-      PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
+      PrecachedNetworkImageManager.instance.cachedFiles[url] = base64String;
       if (precache) {
         PrecachedNetworkImageManager.instance.addPrecache(url: url);
       }
-      return file;
+      return base64String;
     }
 
     Dev.log(
         "$url get url image data failed with error code: ${response.statusCode}");
     return null;
+  }
+
+  Future<dynamic> _getMobileImageFile() async {
+    try {
+      Dev.log("Starting mobile image file processing for: $url");
+
+      dynamic file =
+          await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
+      Dev.log("Got file object: $file");
+
+      bool isExists =
+          await PrecachedNetworkImageManager.instance._fileExists(file);
+      Dev.log("File exists: $isExists");
+
+      if (isExists) {
+        int length =
+            await PrecachedNetworkImageManager.instance._getFileLength(file);
+        Dev.log("File length: $length");
+        if (length > 0) {
+          Dev.log("$url read existing file success");
+          PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
+          return file;
+        } else {
+          Dev.log("File exists but has zero length, will re-download");
+        }
+      }
+
+      Dev.log("Creating file for download: $url");
+      file = await PrecachedNetworkImageManager.instance._createFile(file);
+      Dev.log("File created successfully");
+
+      late http.Response response;
+      dynamic error;
+      try {
+        Dev.log("Starting HTTP request for: $url");
+        response = await http.get(Uri.parse(url));
+        Dev.log("HTTP request completed with status: ${response.statusCode}");
+      } catch (e) {
+        error = e;
+        Dev.log("HTTP request failed with error: $e");
+      }
+      PrecachedNetworkImageManager.instance._isRequesteds[url] = true;
+
+      if (error != null) {
+        PrecachedNetworkImageManager.instance._statusCodes[url] = error;
+        Dev.log("$url get url image data failed with error: $error");
+        return null;
+      }
+
+      PrecachedNetworkImageManager.instance._statusCodes[url] =
+          response.statusCode;
+
+      if (response.statusCode == 200) {
+        Dev.log("Writing ${response.bodyBytes.length} bytes to file");
+        await PrecachedNetworkImageManager.instance
+            ._writeFileAsBytes(file, response.bodyBytes);
+
+        // Verify file was written successfully
+        bool verifyExists =
+            await PrecachedNetworkImageManager.instance._fileExists(file);
+        int verifyLength =
+            await PrecachedNetworkImageManager.instance._getFileLength(file);
+        Dev.log(
+            "File verification - exists: $verifyExists, length: $verifyLength");
+
+        Dev.log("$url write file success with save info: $file");
+        PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
+        PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
+        if (precache) {
+          PrecachedNetworkImageManager.instance.addPrecache(url: url);
+        }
+        return file;
+      }
+
+      Dev.log(
+          "$url get url image data failed with error code: ${response.statusCode}");
+      return null;
+    } catch (e, stackTrace) {
+      Dev.log("_getMobileImageFile error for $url: $e");
+      Dev.log("Stack trace: $stackTrace");
+      return null;
+    }
   }
 }

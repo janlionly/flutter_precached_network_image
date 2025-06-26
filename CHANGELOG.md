@@ -53,3 +53,8 @@
 ## [1.2.6] - 08 Apr 2025
 
 * Feat: Update lib version.
+
+## [1.3.0] - 26 Jun 2025
+
+* BREAKING: Major platform compatibility improvements
+* Feat: Added full Web platform support with localStorage-based caching

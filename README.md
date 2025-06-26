@@ -4,6 +4,24 @@
 
 Flutter library to load and cache network images to disk and support to precache images to memory in advance to avoid the flash screen caused by the delay time.
 
+## Features
+
+- ✅ **Multi-platform support**: Works on iOS, Android, and Web platforms
+- ✅ **Advanced caching**: Dual-layer caching with memory and disk storage
+- ✅ **Precaching**: Load images to memory in advance to prevent flickering
+- ✅ **Web compatibility**: Uses localStorage for web platform caching
+- ✅ **Flexible storage**: Automatic platform-specific storage selection
+- ✅ **Error handling**: Comprehensive error handling and fallback support
+- ✅ **Performance optimized**: Efficient image loading and caching strategies
+
+## Platform Support
+
+| Platform | Cache Storage | Memory Precaching | Status |
+|----------|---------------|------------------|---------|
+| iOS      | File System   | ✅ Yes           | ✅ Supported |
+| Android  | File System   | ✅ Yes           | ✅ Supported |
+| Web      | localStorage  | ✅ Yes           | ✅ Supported |
+
 ## Usage
 
 The PrecachedNetworkImage can be used directly.
@@ -60,6 +78,20 @@ cleanPrecache();
 /// clean all urls precache and file cache in memory and disk
 cleanCaches();
 ```
+
+## Installation
+
+Add this to your package's `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  precached_network_image: ^1.2.6
+```
+
+## Requirements
+
+- Dart SDK: `>=2.17.0 <4.0.0`
+- Flutter: `>=1.17.0`
 
 ## Author
 
