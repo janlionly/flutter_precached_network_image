@@ -58,3 +58,7 @@
 
 * BREAKING: Major platform compatibility improvements
 * Feat: Added full Web platform support with localStorage-based caching
+* 
+## [1.4.0] - 13 Oct 2025
+
+* Feat: Update http version to be compatible with other related libraries.

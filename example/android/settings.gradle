@@ -1,3 +1,11 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 include ':app'
 
 def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
