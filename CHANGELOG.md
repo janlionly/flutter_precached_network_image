@@ -62,3 +62,9 @@
 ## [1.4.0] - 13 Oct 2025
 
 * Feat: Update http version to be compatible with other related libraries.
+
+## [1.4.1] - 26 Dec 2025
+
+* Feat: Replace the `dev_colorized_log` dependency with a lightweight `dart:developer` logging toggle.
+* Chore: Modernize the example Android project to the latest Flutter/Gradle plugin configuration.
+* Docs: Describe the new logging controls and update the published version references.

@@ -7,13 +7,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:dev_colorized_log/dev_colorized_log.dart';
+import 'dart:developer' as dev;
 
 // Platform-specific imports
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'src/file_mobile.dart' if (dart.library.html) 'src/file_web.dart'
     as platform_file;
+
+bool precachedLogEnabled = false;
+
+void _log(String message, {Error? error, StackTrace? trace}) {
+  if (precachedLogEnabled) {
+    dev.log(message, error: error, stackTrace: trace);
+  }
+}
 
 class PrecachedNetworkImageManager {
   PrecachedNetworkImageManager._();
@@ -31,7 +39,7 @@ class PrecachedNetworkImageManager {
   ///   you can call this method in advance(eg. on launch) to avoid the flash screen caused by the delay time
   ///   after set the parameter [precache] of PrecachedNetworkImage(..., precache: true) to true.
   precacheNetworkImages({List<String>? urls, bool isLog = false}) async {
-    Dev.enable = isLog;
+    precachedLogEnabled = isLog;
 
     if (urls != null) {
       await _precacheReadLocal(urls: urls);
@@ -42,8 +50,8 @@ class PrecachedNetworkImageManager {
     }
   }
 
-  setLog(bool isLog) {
-    Dev.enable = isLog;
+  void setLog(bool isLog) {
+    precachedLogEnabled = isLog;
   }
 
   /// add the url which you want to precache next time
@@ -73,7 +81,7 @@ class PrecachedNetworkImageManager {
     if (kIsWeb) {
       await _deleteWebCache(url);
       cachedFiles[url] = null;
-      Dev.log("$url delete web cache success!");
+      _log("$url delete web cache success!");
       return;
     }
 
@@ -84,11 +92,11 @@ class PrecachedNetworkImageManager {
         await _writeFileAsString(file, '');
         await _deleteFile(file);
         cachedFiles[url] = null;
-        Dev.log("$url delete file success!");
+        _log("$url delete file success!");
       }
     } catch (e) {
       // Error in getting access to the file.
-      Dev.log("$url delete file failure with error:($e)");
+      _log("$url delete file failure with error:($e)");
     }
   }
 
@@ -106,7 +114,7 @@ class PrecachedNetworkImageManager {
     SharedPreferences.getInstance().then((prefs) {
       List<String> urls = [];
       prefs.setStringList(_savedTokey, urls);
-      Dev.log("clean all precache success");
+      _log("clean all precache success");
     });
   }
 
@@ -127,7 +135,7 @@ class PrecachedNetworkImageManager {
         await _cacheToFile(url, file);
       }
     }
-    Dev.log("memory cache:$cachedFiles");
+    _log("memory cache:$cachedFiles");
   }
 
   Future<bool> _cacheToFile(String url, dynamic file) async {
@@ -153,7 +161,7 @@ class PrecachedNetworkImageManager {
         return true;
       }
     } catch (e) {
-      Dev.log("Error accessing web storage for $url: $e");
+      _log("Error accessing web storage for $url: $e");
     }
     return false;
   }
@@ -169,7 +177,7 @@ class PrecachedNetworkImageManager {
         final key = _getWebCacheKey(url);
         await _removeWebStorage(key);
       } catch (e) {
-        Dev.log("Error deleting web cache for $url: $e");
+        _log("Error deleting web cache for $url: $e");
       }
     }
   }
@@ -181,7 +189,7 @@ class PrecachedNetworkImageManager {
         final prefs = await SharedPreferences.getInstance();
         return prefs.getString(key);
       } catch (e) {
-        Dev.log("Error getting web storage for $key: $e");
+        _log("Error getting web storage for $key: $e");
         return null;
       }
     }
@@ -194,7 +202,7 @@ class PrecachedNetworkImageManager {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(key, value);
       } catch (e) {
-        Dev.log("Error setting web storage for $key: $e");
+        _log("Error setting web storage for $key: $e");
       }
     }
   }
@@ -205,7 +213,7 @@ class PrecachedNetworkImageManager {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(key);
       } catch (e) {
-        Dev.log("Error removing web storage for $key: $e");
+        _log("Error removing web storage for $key: $e");
       }
     }
   }
@@ -221,10 +229,10 @@ class PrecachedNetworkImageManager {
 
         // Create File object safely for mobile platforms
         var file = _createMobileFile(filePath);
-        Dev.log("Created file for $url at path: $filePath");
+        _log("Created file for $url at path: $filePath");
         return file;
       } catch (e) {
-        Dev.log("Error creating file for $url: $e");
+        _log("Error creating file for $url: $e");
         rethrow;
       }
     }
@@ -240,7 +248,7 @@ class PrecachedNetworkImageManager {
       // This uses a function to dynamically access the File class
       return _createFileInstance(filePath);
     } catch (e) {
-      Dev.log("Error creating File object: $e");
+      _log("Error creating File object: $e");
       rethrow;
     }
   }
@@ -285,7 +293,7 @@ class PrecachedNetworkImageManager {
       try {
         await _setWebStorage(key, contents);
       } catch (e) {
-        Dev.log("Error writing web cache: $e");
+        _log("Error writing web cache: $e");
       }
     } else {
       await file.writeAsString(contents);
@@ -298,7 +306,7 @@ class PrecachedNetworkImageManager {
       try {
         await _removeWebStorage(key);
       } catch (e) {
-        Dev.log("Error deleting web cache: $e");
+        _log("Error deleting web cache: $e");
       }
     } else {
       await file.delete();
@@ -320,7 +328,7 @@ class PrecachedNetworkImageManager {
       try {
         await _setWebStorage(key, base64String);
       } catch (e) {
-        Dev.log("Error writing web cache: $e");
+        _log("Error writing web cache: $e");
       }
     } else {
       await file.writeAsBytes(bytes);
@@ -355,12 +363,10 @@ class PrecachedNetworkImage extends StatelessWidget {
   Widget build(BuildContext context) {
     dynamic targetFile = PrecachedNetworkImageManager.instance.cachedFiles[url];
     if (targetFile != null) {
-      Dev.log("$url read memory precache file success");
       if (kIsWeb) {
         // For web, targetFile is a base64 string
         return _buildWebImage(targetFile);
       } else {
-        Dev.log("$url displaying mobile cached file: $targetFile");
         try {
           return Image.file(
             targetFile,
@@ -370,14 +376,13 @@ class PrecachedNetworkImage extends StatelessWidget {
             height: height,
             fit: fit,
             errorBuilder: (context, error, stackTrace) {
-              Dev.log("$url Image.file error: $error");
               return Container(
                 width: width,
                 height: height,
                 color: Colors.red[100],
-                child: Column(
+                child: const Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.error, color: Colors.red),
                     Text('File Error', style: TextStyle(fontSize: 12)),
                   ],
@@ -386,14 +391,13 @@ class PrecachedNetworkImage extends StatelessWidget {
             },
           );
         } catch (e) {
-          Dev.log("$url Exception creating Image.file: $e");
           return Container(
             width: width,
             height: height,
             color: Colors.orange[100],
-            child: Column(
+            child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(Icons.warning, color: Colors.orange),
                 Text('Create Error', style: TextStyle(fontSize: 12)),
               ],
@@ -402,7 +406,6 @@ class PrecachedNetworkImage extends StatelessWidget {
         }
       }
     }
-    Dev.log("$url get file from future");
     return FutureBuilder<dynamic>(
         future: _getUrlFile(),
         builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
@@ -410,8 +413,7 @@ class PrecachedNetworkImage extends StatelessWidget {
             if (kIsWeb) {
               return _buildWebImage(snapshot.data);
             } else {
-              Dev.log(
-                  "$url displaying mobile file from future: ${snapshot.data}");
+              _log("$url displaying mobile file from future: ${snapshot.data}");
               try {
                 return Image.file(
                   snapshot.data!,
@@ -421,14 +423,13 @@ class PrecachedNetworkImage extends StatelessWidget {
                   height: height,
                   fit: fit,
                   errorBuilder: (context, error, stackTrace) {
-                    Dev.log("$url Image.file future error: $error");
                     return Container(
                       width: width,
                       height: height,
                       color: Colors.red[100],
-                      child: Column(
+                      child: const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.error, color: Colors.red),
                           Text('Future File Error',
                               style: TextStyle(fontSize: 12)),
@@ -438,14 +439,13 @@ class PrecachedNetworkImage extends StatelessWidget {
                   },
                 );
               } catch (e) {
-                Dev.log("$url Exception creating future Image.file: $e");
                 return Container(
                   width: width,
                   height: height,
                   color: Colors.orange[100],
-                  child: Column(
+                  child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.warning, color: Colors.orange),
                       Text('Future Create Error',
                           style: TextStyle(fontSize: 12)),
@@ -492,7 +492,6 @@ class PrecachedNetworkImage extends StatelessWidget {
         gaplessPlayback: gaplessPlayback,
       );
     } catch (e) {
-      Dev.log("Error decoding image data for $url: $e");
       return Container(
         width: width,
         height: height,
@@ -506,8 +505,8 @@ class PrecachedNetworkImage extends StatelessWidget {
     try {
       return placeholder!(context, url);
     } catch (e, stack) {
-      Dev.logError('placeholder error', error: e, stackTrace: stack);
       // fallback to error widget
+      _log('error: $e', trace: stack);
       return errorWidget != null
           ? errorWidget!(
               context,
@@ -538,12 +537,11 @@ class PrecachedNetworkImage extends StatelessWidget {
       final cachedData =
           await PrecachedNetworkImageManager.instance._getWebStorage(key);
       if (cachedData != null && cachedData.isNotEmpty) {
-        Dev.log("$url read web cache success");
         PrecachedNetworkImageManager.instance.cachedFiles[url] = cachedData;
         return cachedData;
       }
     } catch (e) {
-      Dev.log("Error accessing web cache for $url: $e");
+      _log("Error accessing web cache for $url: $e");
     }
 
     // Fetch from network
@@ -558,7 +556,7 @@ class PrecachedNetworkImage extends StatelessWidget {
 
     if (error != null) {
       PrecachedNetworkImageManager.instance._statusCodes[url] = error;
-      Dev.log("$url get url image data failed with error code: $error");
+      _log("$url get url image data failed with error code: $error");
       return null;
     }
 
@@ -570,9 +568,9 @@ class PrecachedNetworkImage extends StatelessWidget {
       try {
         await PrecachedNetworkImageManager.instance
             ._setWebStorage(key, base64String);
-        Dev.log("$url write web cache success");
+        _log("$url write web cache success");
       } catch (e) {
-        Dev.log("Error writing web cache for $url: $e");
+        _log("Error writing web cache for $url: $e");
       }
       PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
       PrecachedNetworkImageManager.instance.cachedFiles[url] = base64String;
@@ -582,55 +580,55 @@ class PrecachedNetworkImage extends StatelessWidget {
       return base64String;
     }
 
-    Dev.log(
+    _log(
         "$url get url image data failed with error code: ${response.statusCode}");
     return null;
   }
 
   Future<dynamic> _getMobileImageFile() async {
     try {
-      Dev.log("Starting mobile image file processing for: $url");
+      _log("Starting mobile image file processing for: $url");
 
       dynamic file =
           await PrecachedNetworkImageManager.instance._getFileWithUrl(url);
-      Dev.log("Got file object: $file");
+      _log("Got file object: $file");
 
       bool isExists =
           await PrecachedNetworkImageManager.instance._fileExists(file);
-      Dev.log("File exists: $isExists");
+      _log("File exists: $isExists");
 
       if (isExists) {
         int length =
             await PrecachedNetworkImageManager.instance._getFileLength(file);
-        Dev.log("File length: $length");
+        _log("File length: $length");
         if (length > 0) {
-          Dev.log("$url read existing file success");
+          _log("$url read existing file success");
           PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
           return file;
         } else {
-          Dev.log("File exists but has zero length, will re-download");
+          _log("File exists but has zero length, will re-download");
         }
       }
 
-      Dev.log("Creating file for download: $url");
+      _log("Creating file for download: $url");
       file = await PrecachedNetworkImageManager.instance._createFile(file);
-      Dev.log("File created successfully");
+      _log("File created successfully");
 
       late http.Response response;
       dynamic error;
       try {
-        Dev.log("Starting HTTP request for: $url");
+        _log("Starting HTTP request for: $url");
         response = await http.get(Uri.parse(url));
-        Dev.log("HTTP request completed with status: ${response.statusCode}");
+        _log("HTTP request completed with status: ${response.statusCode}");
       } catch (e) {
         error = e;
-        Dev.log("HTTP request failed with error: $e");
+        _log("HTTP request failed with error: $e");
       }
       PrecachedNetworkImageManager.instance._isRequesteds[url] = true;
 
       if (error != null) {
         PrecachedNetworkImageManager.instance._statusCodes[url] = error;
-        Dev.log("$url get url image data failed with error: $error");
+        _log("$url get url image data failed with error: $error");
         return null;
       }
 
@@ -638,7 +636,7 @@ class PrecachedNetworkImage extends StatelessWidget {
           response.statusCode;
 
       if (response.statusCode == 200) {
-        Dev.log("Writing ${response.bodyBytes.length} bytes to file");
+        _log("Writing ${response.bodyBytes.length} bytes to file");
         await PrecachedNetworkImageManager.instance
             ._writeFileAsBytes(file, response.bodyBytes);
 
@@ -647,10 +645,10 @@ class PrecachedNetworkImage extends StatelessWidget {
             await PrecachedNetworkImageManager.instance._fileExists(file);
         int verifyLength =
             await PrecachedNetworkImageManager.instance._getFileLength(file);
-        Dev.log(
+        _log(
             "File verification - exists: $verifyExists, length: $verifyLength");
 
-        Dev.log("$url write file success with save info: $file");
+        _log("$url write file success with save info: $file");
         PrecachedNetworkImageManager.instance._isLoadSuccessfuls[url] = true;
         PrecachedNetworkImageManager.instance.cachedFiles[url] = file;
         if (precache) {
@@ -659,12 +657,12 @@ class PrecachedNetworkImage extends StatelessWidget {
         return file;
       }
 
-      Dev.log(
+      _log(
           "$url get url image data failed with error code: ${response.statusCode}");
       return null;
     } catch (e, stackTrace) {
-      Dev.log("_getMobileImageFile error for $url: $e");
-      Dev.log("Stack trace: $stackTrace");
+      _log("_getMobileImageFile error for $url: $e");
+      _log("Stack trace: $stackTrace");
       return null;
     }
   }

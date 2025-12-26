@@ -13,6 +13,7 @@ Flutter library to load and cache network images to disk and support to precache
 - ✅ **Flexible storage**: Automatic platform-specific storage selection
 - ✅ **Error handling**: Comprehensive error handling and fallback support
 - ✅ **Performance optimized**: Efficient image loading and caching strategies
+- ✅ **Debug logging**: Opt-in logging powered by `dart:developer`
 
 ## Platform Support
 
@@ -48,6 +49,8 @@ When you want to precache images to memory to avoid the delay time, you can call
 void initState() {
   super.initState();
   PrecachedNetworkImageManager.instance.precacheNetworkImages(isLog: true);
+  // or toggle logging manually any time
+  PrecachedNetworkImageManager.instance.setLog(true);
 }
 ```
 
@@ -77,7 +80,17 @@ cleanPrecache();
 
 /// clean all urls precache and file cache in memory and disk
 cleanCaches();
+
+/// toggle developer logging output
+setLog(bool isLog);
 ```
+
+## Logging
+
+Logs are off by default to keep the library silent in production. Enable them either by calling
+`PrecachedNetworkImageManager.instance.setLog(true)` or by passing `isLog: true` to
+`precacheNetworkImages`. All logs go through `dart:developer`, so you can capture them with your
+existing debugging tools without adding extra dependencies.
 
 ## Installation
 
@@ -85,12 +98,12 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  precached_network_image: ^1.2.6
+  precached_network_image: ^1.4.1
 ```
 
 ## Requirements
 
-- Dart SDK: `>=2.17.0 <4.0.0`
+- Dart SDK: `>=2.19.0 <4.0.0`
 - Flutter: `>=1.17.0`
 
 ## Author
